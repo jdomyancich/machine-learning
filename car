@@ -1,0 +1,60 @@
+import cv2, requests, sys
+from matplotlib import pyplot as plt
+
+# Gets an image from the webcam
+def getWebcamImageData():
+    cam = cv2.VideoCapture(0)
+    try:
+        ok, image = cam.read()
+        if ok != True:
+            raise ValueError("Problem using the webcam")
+        ok, data = cv2.imencode('.jpg', image)
+        if ok != True:
+            raise ValueError("Problem getting image data")
+        if sys.version_info[0] < 3:
+            # Python 2 approach to handling bytes
+            return data.encode("base64")
+        else:
+            # Python 3 approach to handling bytes
+            import base64
+            return base64.b64encode(data).decode()
+    finally:
+        cam.release()
+        plt.imshow(image)
+        plt.show()
+
+
+# This function will pass your image to the machine learning model
+# and return the top result with the highest confidence
+def classify():
+    key = "1088e500-1af8-11ea-8525-25072139b2db38b41feb-b42b-4cca-b3b1-8b97a77d4223"
+    url = "https://machinelearningforkids.co.uk/api/scratch/"+ key + "/classify"
+
+    response = requests.post(url, json={ "data" : getWebcamImageData() })
+
+    if response.ok:
+        responseData = response.json()
+        topMatch = responseData[0]
+        return topMatch
+    else:
+        response.raise_for_status()
+        
+while(1):
+    print("go")
+
+    demo = classify()
+
+    label = demo["class_name"]
+    confidence = demo["confidence"]
+
+    # CHANGE THIS to do something different with the result
+    print ("result: '%s' with %d%% confidence" % (label, confidence))
+
+
+
+    if label == "Red_Light":
+        print("stop")
+
+
+    elif label == "Green_Light":
+        print("go")
